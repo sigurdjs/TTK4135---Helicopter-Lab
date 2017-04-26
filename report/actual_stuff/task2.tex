@@ -1,0 +1,176 @@
+\section{Optimal Control without Feedback}\label{sec:10_2}
+
+\subsection{Continous Time Space State Model}
+
+Equations \cref{eq:model_se_al_pitch}-\cref{eq:model_se_al_r} can easily be written as
+ \begin{equation}
+     \matr{\dot{x}} = \matr{A}_c\matr{x} + \matr{B}_c\matr{u}
+ \end{equation}
+ by introducing the state variable $x = \begin{bmatrix}\lambda & r & p & \dot{p} \end{bmatrix}^\top$ and $u = p_{c}$.
+
+\begin{equation}\label{eq:linear_model}
+    \begin{spmatrix}{\matr{\dot{x}}}
+    \dot{\lambda} \\ \dot{r} \\ \dot{p} \\ \ddot{p}
+    \end{spmatrix}
+    =
+    \begin{spmatrix}{\matr{A}_c}
+		0 & 1 & 0 & 0      \\
+		0 & 0 & -K_{2} & 0 \\
+		0 & 0 & 0 & 1      \\
+		0 &  0 & -K_{1}K_{pp} & -K_{1}K_{pd}
+	\end{spmatrix}
+	\begin{spmatrix}{\matr{x}} \lambda \\ r \\ p \\ \dot{p} \end{spmatrix}
+	+
+	\begin{spmatrix}{\matr{B}_c}
+		0 \\ 0 \\ 0 \\ K_{1}K_{pp}
+	\end{spmatrix}
+	p_{c}
+\end{equation}
+
+This model contains both the properties of the equations of motion governing the helicopters motion, as well as the closed loop properties of the pitch and elevation controller, which is illustrated as the control layer and the physical layer in \cref{fig:layers_openloop}.
+
+\begin{figure}[ht]
+	\centering
+	\input{fig/open_loop.tikz}
+	\caption{Layers in the control hierarchy (courtesy of \cite{Assignment-text})}
+\label{fig:layers_openloop}
+\end{figure}
+
+\subsection{Discrete State Space Model}
+
+To be able to integrate the state space equations into an optimization problem to be solved in matlab, we have to transform the model to a discrete form using a numerical procedure. The forward Euler method can be used to formulate a numerical solution for ODEs with a given initial value. For our model the derivation is given in \cref{eq:f_euler_1} - \cref{eq:f_euler_4}.
+
+\begin{subequations}\label{eq:f_euler}
+    \begin{align}
+        \matr{x}_{n+1} = \matr{x}_n + hf(\matr{x}_n) \label{eq:f_euler_1} \\
+        \matr{\dot{x}} = f(\matr{x}) \rightarrow \matr{x}_{n+1} = \matr{x}_n + h\matr{\dot{x}_n} \label{eq:f_euler_2} \\
+        \matr{x}_{n+1} = \matr{x}_n + h(\matr{A}_c\matr{x}_n + \matr{B}_cu_{n}) \label{eq:f_euler_3} \\
+        \matr{x}_{n+1} = (\matr{I} + h\matr{A}_c)\matr{x}_n + h\matr{B}_cu_n \label{eq:f_euler_4}
+    \end{align}
+\end{subequations}
+
+\subsection{Optimal Trajectory}
+
+Next we are going to calculate the optimal trajectory for moving from $\matr{x_{0}} = \begin{bmatrix} \lambda_{0} & 0 & 0 & 0 \end{bmatrix}^\top$ to $\matr{x_{f}} = \begin{bmatrix} \lambda_{f} & 0 & 0 & 0 \end{bmatrix}^\top$, i.e. a travel by 180 degrees. We acquire the optimal trajectory by minimizing the cost-function given in \cref{eq:cost_func}. We also include the linear constraints on the pitch reference given in \cref{eq:constraints}
+
+\begin{equation}
+    \phi = \sum_{i = 1}^{N} (\lambda_{i} - \lambda_{f})^2 + qp_{ci-1}^{2} \label{eq:cost_func}
+\end{equation}
+
+\begin{align}\label{eq:constraints}
+        \mid p_k\mid\leq\frac{30\pi}{180}, \ k\in{1,...,N}
+\end{align}
+
+To use this with matlabs quadprog-function we have to rewrite the function to the form $\frac{1}{2}\matr{x^\top}\matr{Q}\matr{x} + \matr{x^\top}\matr{c}$.
+\begin{subequations}\label{eq:qp_inter}
+    \begin{gather}
+        \phi = \frac{1}{2}\sum_{i=0}^{N-1}(\matr{x}_{i+1} - \matr{x}_{f})^\top\matr{G}(\matr{x}_{i+1} - \matr{x}_{f}) + u_{i}2qu_{i}, \\
+        \matr{G} =
+        \begin{pmatrix}
+            2 & 0 & 0 & 0 \\
+            0 & 0 & 0 & 0 \\
+            0 & 0 & 0 & 0 \\
+            0 & 0 & 0 & 0
+        \end{pmatrix}
+    \end{gather}
+\end{subequations}
+
+The discretized model given in \cref{eq:f_euler_1} - \cref{eq:f_euler_4} can be used to formulate the equality constraints for the QP-problem as seen in \cref{eq:eql_constr}.
+
+\begin{subequations}\label{eq:eql_constr}
+    \begin{gather}
+        \matr{Ix}_{1} - \matr{B}u_{0} = \matr{Ax}_{0} \label{eq:eql_constr_0} \\
+        \matr{Ix}_{n} -  \matr{Ax}_{n-1} - \matr{B}u_{n-1} = 0 \label{eq:eql_constr_n} \\[0.4cm]
+        \begin{spmatrix}{\matr{A}_{eq}}[cccc|cccc]
+            \matr{I} & \cdots & \cdots & 0 & \matr{-B} & \cdots & \cdots & 0\\
+            \matr{-A} & \matr{I} &  & \vdots & 0 & \matr{-B} & & \vdots\\
+            \vdots & & \ddots & \vdots & \vdots & & \ddots & \vdots\\
+            0 & \cdots & \matr{-A} & \matr{I} & 0 & \cdots & \cdots  & \matr{-B}
+        \end{spmatrix}
+        \begin{spmatrix}{\matr{z}}
+            \matr{x}_{1}    \\
+            \vdots          \\
+            \matr{x}_{n}    \\
+            u_{0}           \\
+            \vdots          \\
+            u_{n-1}
+        \end{spmatrix}
+        =
+        \begin{spmatrix}{\matr{B}_{eq}}
+            \matr{Ax}_{0}   \\
+            0               \\
+            \vdots          \\
+            \vdots          \\
+            0
+        \end{spmatrix}  \label{eq:eql_const_matr}
+    \end{gather}
+\end{subequations}
+
+With the new introduced state variable $\matr{z}$ we can rewrite \cref{eq:qp_inter} as \cref{eq:qp_final} and solve for $N$ timesteps with quadprog. The $c$-vector is set to zero since the cost function only includes quadratic terms.
+
+\begin{subequations}\label{eq:qp_final}
+    \begin{gather}
+        \phi = \frac{1}{2}\matr{z}^\top\matr{Q}\matr{z}\qquad s.t\qquad \matr{A}_{eq}\matr{z} = \matr{B}_{eq},\quad -\frac{30\pi}{180} \leq u_{n} \leq \frac{30\pi}{180}, \\[0.4cm]
+        \matr{Q}=
+        \begin{pmatrix}
+            \matr{G} & \cdots & \matr{0} & & & \\
+            \vdots & \ddots & \vdots & &  & \\
+            \matr{0} & \cdots & \matr{G} & & & \\
+             & & & 2q & \cdots & 0 \\
+             &  & & \vdots & \ddots & \vdots \\
+             & & & 0 & \cdots & 2q
+        \end{pmatrix}
+    \end{gather}
+\end{subequations}
+
+\vspace{0.6cm}
+\subsection{Discussion and Results}
+From figure \cref{fig:2_plots_q01,fig:2_plots_q1,fig:2_plots_q10} we can see that the measured travel angle $\lambda$ deviates from the calculated angle $\lambda_c$. The helicopter does travel the correct distance from $\lambda_0$ to $\lambda_f$, but is neither stationary nor in the correct absolute position. This is because there is no regulator tracking the travel angle error and correcting for it. The trajectory for travel is only estimated from its coupling with the pitch angle. Because of imperfections in the physical world, the smallest error in pitch angle will cause an increasingly large error in the travel angle (the helicopter will move at a low constant speed in the travel direction). The value $q = 1$ seems to give the best results, and is used for the remainder of the report.
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[t]{0.5\textwidth}
+        \input{fig/2_plots/travel_q01.tikz}
+        %\caption{Calculated and measured travel with weight q=1}
+        \label{fig:2_travel_q01}
+    \end{subfigure}%
+    ~
+    \begin{subfigure}[t]{0.5\textwidth}
+        \input{fig/2_plots/pitch_q01.tikz}
+        %\caption{Calculated pitch, measured pitch, input $u$ and weight q=1}
+        \label{fig:2_pitch_q01}
+    \end{subfigure}\vspace{-0.4cm}
+    \caption{Plots of calculated and measured pitch and travel with $q = 0.1$}\label{fig:2_plots_q01}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[t]{0.5\textwidth}
+        \input{fig/2_plots/travel_q1.tikz}
+        %\caption{Calculated and measured travel with weight q=1}
+        \label{fig:2_travel_q1}
+    \end{subfigure}%
+    ~
+    \begin{subfigure}[t]{0.5\textwidth}
+        \input{fig/2_plots/pitch_q1.tikz}
+        %\caption{Calculated pitch, measured pitch, input $u$ and weight q=1}
+        \label{fig:2_pitch_q1}
+    \end{subfigure}\vspace{-0.4cm}
+    \caption{Plots of calculated and measured pitch and travel with $q = 1$}\label{fig:2_plots_q1}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[t]{0.5\textwidth}
+        \input{fig/2_plots/travel_q10.tikz}
+        %\caption{Calculated and measured travel with weight q=1}
+        \label{fig:2_travel_q10}
+    \end{subfigure}%
+    ~
+    \begin{subfigure}[t]{0.5\textwidth}
+        \input{fig/2_plots/pitch_q10.tikz}
+        %\caption{Calculated pitch, measured pitch, input $u$ and weight q=1}
+        \label{fig:2_pitch_q10}
+    \end{subfigure}\vspace{-0.4cm}
+    \caption{Plots of calculated and measured pitch and travel with $q = 10$}\label{fig:2_plots_q10}
+\end{figure}

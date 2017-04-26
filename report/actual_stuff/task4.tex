@@ -1,0 +1,155 @@
+\section[Optimal Control of Pitch/Travel and Elevation with and without Feedback]{Optimal Control of Pitch/Travel and Elevation\\ with and without Feedback}\label{sec:10_4}
+
+\subsection{Extented State Space Model}
+Using equation \cref{eq:model_al} we can easily extend the model to include elevation by adding \cref{eq:model_se_elev} to the state space model \cref{eq:linear_model}.
+\begin{equation}
+    		\ddot{e} + K_{3} K_{ed} \dot{e} + K_{3} K_{ep} e = K_{3} K_{ep} e_{c} \label{eq:model_se_elev} \\
+\end{equation}
+The state variable is now $\matr{x} = \begin{sbmatrix}{}\lambda & r & p & \dot{p} & e & \dot{e} \end{sbmatrix}^\top$ and the control input is $ \matr{u} = \begin{sbmatrix}{} p_c & e_c \end{sbmatrix}^\top$. The system is the written on state space form as seen in equation \eqref{eq:full_linear_model}
+
+\begin{subequations}\label{eq:full_linear_model}
+    \begin{gather}
+        \matr{\dot{x}} = \matr{A}_c\matr{x} + \matr{B}_c\matr{u}, \label{eq:state_space} \\[0.4cm]
+        \matr{A}_c =
+        \begin{spmatrix}{}
+    		0 & 1 & 0 & 0 & 0 & 0      \\
+    		0 & 0 & -K_{2} & 0 & 0 & 0 \\
+    		0 & 0 & 0 & 1 & 0 & 0      \\
+    		0 &  0 & -K_{1}K_{pp} & -K_{1}K_{pd} & 0 & 0 \\
+    		0 & 0 & 0 & 0 & 0 & 1      \\
+    		0 & 0 & 0 & 0 & -K_{3}K_{ep} & -K_{3}K_{ed}
+    	\end{spmatrix},\label{eq:ac_full}
+    	\\
+    	\matr{B}_c =
+    	\begin{spmatrix}{}
+    		0 & 0 \\ 0 & 0 \\ 0 & 0 \\ K_{1}K_{pp} & 0 \\ 0 & 0 \\ 0 & K_{3}K_{ep}
+    	\end{spmatrix}\label{eq:bc_full}
+    \end{gather}
+\end{subequations}
+
+By using the same method for discretizing the model as described in equation \cref{eq:f_euler_1} - \cref{eq:f_euler_3} the model is written as equation \cref{eq:f_euler_4}, only with new $\matr{A}_c$ and $\matr{B}_c$ matrices and augmented $\matr{x}_n$ and $\matr{u}_n$ vectors.
+
+\subsection{Inequality Constraints}
+An inequality constraint is imposed on the elevation for every point in time. This can be seen as simulating an obstacle for the helicopter to pass in an optimal maneuver. The constraints are written as $\alpha \exp(-\beta(\lambda_k - \lambda_t)^2)-e_k \leq 0$ with $\alpha = 0.2$, $\beta = 20$ and $\lambda_t = \frac{2\pi}{3}$. The objective function is extended with a weighted penalty for use of the elevation setpoint variable $e_c$ as seen in \cref{eq:new_cost_func}.
+
+\begin{equation}
+    \phi = \sum_{i = 1}^{N} (\lambda_{i} - \lambda_{f})^2 + q_1p_{ci-1}^{2} + q_2e^2_{ci-1} \label{eq:new_cost_func}
+\end{equation}
+
+When the objective function is rewritten with the new state vector $\matr{z}$, which is identical to the one seen in \cref{eq:eql_const_matr}, except for two more x-states, the optimization problem can be stated on the same form as \cref{eq:qp_final}. $\matr{A}_{eq}$ and $\matr{B}_{eq}$ have the same structure as before, only $\matr{Q}$ is augmented such that $q$ now represents a matrix as seen in \cref{eq:qp_final_full_q} (and $\matr{G}$ is extended to 6x6).
+
+\begin{subequations}\label{eq:qp_final_full}
+    \begin{gather}
+        \phi = \frac{1}{2}\matr{z}^\top\matr{Qz} \qquad s.t \qquad \matr{A}_{eq}\matr{z} = \matr{B}_{eq}, \quad  -\frac{30\pi}{180} \leq u_{n} \leq \frac{30\pi}{180},\\[0.4cm]
+        \alpha \exp(-\beta(\lambda_k - \lambda_t)^2)-e_k \leq 0 \quad\forall k  \in  \{1,..,N\}, \\[0.4cm]
+        \matr{Q}=
+        \begin{pmatrix}\label{eq:qp_final_full_q}
+            \matr{G} & \cdots & \matr{0} & & & \\
+            \vdots & \ddots & \vdots & &  & \\
+            \matr{0} & \cdots & \matr{G} & & & \\
+             & & & 2\matr{q} & \cdots & 0 \\
+             &  & & \vdots & \ddots & \vdots \\
+             & & & 0 & \cdots & 2\matr{q}
+        \end{pmatrix}
+    \end{gather}
+\end{subequations}
+
+\subsection{Feedback Control and Parameter Tuning}
+Feedback control is implemented similarly to in \cref{sec:lq_control}. The $\matr{Q}_{lq}$ and $\matr{R}_{lq}$ for the cost function $\matr{J}$ are extented to 6x6 and 2x2 to impose weights on elevation $e$ and elevation rate $\dot{e}$ in addition to control input $u = \begin{pmatrix} p_c & e_c \end{pmatrix}^\top$. The new optimal gain matrix $\matr{K}$ is found by using the MATLAB function dlqr. Again Bryson's rule is used as a starting point for finding the best performing $\matr{Q}_{lq}$ and $\matr{R}_{lq}$ as seen in \cref{eq:bryson_values}.
+
+\begin{subequations}\label{eq:bryson_values}
+    \begin{gather}
+    \matr{Q_{lq}}=
+    \begin{pmatrix}
+    10 & 0 & 0 & 0 & 0 & 0\\
+    0 & \frac{1}{16\pi^2} & 0 & 0 & 0 & 0 \\
+    0 & 0 & \frac{16}{\pi^2} & 0 & 0 & 0 \\
+    0 & 0 & 0 & \frac{4}{\pi^2} & 0 & 0 \\
+    0 & 0 & 0 & 0 & \frac{16}{\pi^2} & 0 \\
+    0 & 0 & 0 & 0 & 0 & \frac{4}{\pi^2}
+    \end{pmatrix} \\[0.35cm]
+    \matr{R}_{lq}=
+    \begin{pmatrix}
+        \frac{1}{(\max p_c)^2} & 0 \\
+        0 & \frac{1}{(\max e_c)^2} \
+    \end{pmatrix}
+    \end{gather}
+\end{subequations}
+
+
+
+\subsection{Discussion and Results}
+\subsubsection{Results without Feedback}
+When running the optimal sequence without feedback we can see that the helictoper struggles to reach the correct elevation profile, in addition the similar deviation in travel as seen in \cref{fig:2_plots_q01,fig:2_plots_q1,fig:2_plots_q10}.
+
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}[t]{0.5\textwidth}
+        \centering
+        \input{fig/4_plots/no_fb/elevation.tikz}
+        \label{fig:4_elevation_no_fb}
+    \end{subfigure}%
+    ~
+    \begin{subfigure}[t]{0.5\textwidth}
+        \centering
+        \input{fig/4_plots/no_fb/pitch.tikz}
+        \label{fig:4_pitch_no_fb}
+    \end{subfigure}\vspace{-0.4cm}
+    \caption{Pitch and elevation with no feedback}
+\end{figure}
+
+\subsubsection{Results with Feedback}
+Introducing feedback to the system gives better results. Using the weighting matrices derived with Bryson's rule the elevation profile is a tiny bit better than without feedback \cref{fig:4_worst_elevation}. However when increasing the penalty on $e$ the helicopter tracks the elevation trajectory more precise, but oscillations occur at high penalties, as seen in \cref{fig:4_best_elevation}. For stable operation a tradeoff between perfect tracking and unoticeable oscillations should be considered.
+
+\begin{figure}[h!]
+    \centering
+    \begin{subfigure}[t]{0.5\textwidth}
+        \centering
+        \input{fig/4_plots/with_fb/elevation_w.tikz}
+        \phantomcaption
+        \label{fig:4_worst_elevation}
+    \end{subfigure}%
+    ~
+    \begin{subfigure}[t]{0.5\textwidth}
+        \centering
+        \input{fig/4_plots/with_fb/elevation_b.tikz}
+        \phantomcaption
+        \label{fig:4_best_elevation}
+    \end{subfigure}\vspace{-0.6cm}
+    \caption{Comparison of best and worst elevation result}
+\end{figure}
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}[t]{0.5\textwidth}
+        \centering
+        \input{fig/4_plots/with_fb/pitch_w.tikz}
+        \phantomcaption
+        \label{fig:4_worst_pitch}
+    \end{subfigure}%
+    ~
+    \begin{subfigure}[t]{0.5\textwidth}
+        \centering
+        \input{fig/4_plots/with_fb/pitch_b.tikz}
+        \phantomcaption
+        \label{fig:4_best_pitch}
+    \end{subfigure}\vspace{-0.4cm}
+    \caption{Comparison of best and worst pitch result}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}[t]{0.5\textwidth}
+        \centering
+        \input{fig/4_plots/with_fb/travel_w.tikz}
+        \phantomcaption
+        \label{fig:4_worst_travel}
+    \end{subfigure}%
+    ~
+    \begin{subfigure}[t]{0.5\textwidth}
+        \centering
+        \input{fig/4_plots/with_fb/travel_b.tikz}
+        \phantomcaption
+        \label{fig:4_best_travel}
+    \end{subfigure}\vspace{-0.4cm}
+    \caption{Comparison of best and worst travel result}
+\end{figure}

@@ -1,0 +1,59 @@
+%\addcontentsline{toc}{section}{Appendix} % Remove this if you don't want the appendix included in the table of contents.
+\appendix
+
+\section{MATLAB Code}\label{sec:matlab}
+Code used in the various tasks. In task 10.2 code was mostly written to make some plots. The solving of the optimization problem used the template files from BlackBoard (where the relevant part were filled in). In task 10.3 calculations are done in \cref{sec:problem_3_m} and plotting done in \cref{sec:plotting_3_m}. In task 10.4 the discrete model is calculated in the script \cref{sec:disc_model_m}, optimization problem solved in \cref{sec:problem_3_m} and plotting done in \cref{sec:plotting_4_m}.
+
+\vspace{1cm}
+
+\subsection{create\_plots\_2.m}\label{sec:create_plots_2_m}
+\lstinputlisting{code/2_code/create_plots.m}
+
+\vspace{1cm}
+
+\subsection{problem\_3.m}\label{sec:problem_3_m}
+\lstinputlisting{code/3_code/problem_3.m}
+
+\vspace{1cm}
+
+\subsection{plotting\_3.m}\label{sec:plotting_3_m}
+\lstinputlisting{code/3_code/plotting_3.m}
+
+\vspace{1cm}
+
+\subsection{disc\_model.m}\label{sec:disc_model_m}
+\lstinputlisting{code/4_code/disc_model.m}
+
+\vspace{1cm}
+
+\subsection{problem\_4.m}\label{sec:problem_4_m}
+\lstinputlisting{code/4_code/problem_4.m}
+
+\vspace{1cm}
+
+\subsection{plotting\_4.m}\label{sec:plotting_4_m}
+The code is identical to \cref{sec:plotting_3_m} except for the following code.
+\lstinputlisting{code/4_code/plotting_4.m}
+
+\clearpage
+\section{Simulink Diagrams}\label{sec:simulink}
+\begin{figure}[h]
+	\centering
+		\includegraphics[trim = {0 5cm 0 5cm}, clip, totalheight=0.5\textwidth ,angle=90]{fig/simulink/helicopter_2.pdf}
+	\caption{The Simulink diagram used in \cref{sec:10_2}}
+\label{fig:heli_2}
+\end{figure}
+
+\begin{figure}[h]
+	\centering
+		\includegraphics[trim = {0 5cm 0 5cm}, clip, totalheight=0.65\textwidth, angle=90 ]{fig/simulink/helicopter_3.pdf}
+	\caption{The Simulink diagram used in \cref{sec:10_3}}
+\label{fig:heli_3}
+\end{figure}
+
+\begin{figure}[h]
+	\centering
+		\includegraphics[trim = {0 5cm 0 5cm}, clip, totalheight=0.65\textwidth, angle=90 ]{fig/simulink/helicopter_4.pdf}
+	\caption{The Simulink diagram used in \cref{sec:10_4}. When simulating without feedback the gain $Ku$ is just commented out}
+\label{fig:heli_4}
+\end{figure}

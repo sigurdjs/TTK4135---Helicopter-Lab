@@ -1,0 +1,69 @@
+\section{Optimal Control of Pitch/Travel with Feedback}\label{sec:10_3}
+
+\subsection{Linear Quadratic Control}\label{sec:lq_control}
+
+To eliminate the deviation between optimal and measured travel trajectory, we introduce LQ-control as seen in \cref{fig:layers_closedloop}. For every time step, we calculate the optimal input with the state feedback weighted by the gain matrix $\matr{K}$.
+
+\begin{equation}\label{eq:state_feedback}
+    u_k=u_k^*-\matr{K}(\matr{x}_k-\matr{x}_k^*)
+\end{equation}
+
+
+We want to find the gain matrix $\matr{K}$ which minimizes the quadratic cost function $\matr{J}$ given by \eqref{eq:quad_cost_func}.
+
+\begin{align} \label{eq:quad_cost_func}
+    \matr{J} = \sum_{i=0}^{\infty}\Delta x_{i+1}^T \matr{Q}_{lq}\Delta x_{i+1}+\Delta u_i^T R_{lq} \Delta u_i, \ \ \matr{Q}_{lq}\geq 0, \ R_{lq}\geq 0
+\end{align}
+\begin{figure}[h]
+	\centering
+	\input{fig/closed_loop.tikz}
+	\caption{Layers in the control hierarchy with added LQ-control (courtesy of \cite{Assignment-text})}
+\label{fig:layers_closedloop}
+\end{figure}
+
+Using Bryson's rule we set the weight matrices to
+\begin{subequations}
+    \begin{gather}
+    \matr{Q_{lq}}=
+    \begin{pmatrix}
+    10 & 0 & 0 & 0\\
+    0 & \frac{1}{16\pi^2} & 0 & 0 \\
+    0 & 0 & \frac{16}{\pi^2} & 0 \\
+    0 & 0 & 0 & \frac{4}{\pi^2}
+    \end{pmatrix} \\
+    R_{lq}=\frac{30 \pi}{180}
+    \end{gather}
+\end{subequations}
+Using the MATLAB funtion \lstinline{dlqr} we can now compute the gain matrix to be
+\begin{equation}
+    \matr{K}=
+    \begin{bmatrix} -1.3238 \ \ -3.8125 \ \ 1.7767 \ \ 0.4558 \end{bmatrix}.
+\end{equation}
+
+\subsection{Discussion and Results}
+
+As expected the helicopter performed better than without feedback control. Unlike \cref{fig:2_plots_q01,fig:2_plots_q1,fig:2_plots_q10}, the travel was approximately constant at the end, i.e. the helicopter did stand at almost still. On the other side there were still som deviations between the measured states and the calculated states. As we see in \cref{fig:3_pitch}, the helicopter rises it's pitch before what is calculated. The pitch also have a stationary deviation at the end of the simulation. This correlate with \cref{fig:3_travel}, where the travel also stabilized to soon.
+
+A possible reason for our deviations is the implementation of the weighting matrices. We based the weighting matrices on Bryson's rule. This rule is a thumb rule, but often the values have to be slightly adjusted.
+
+\begin{figure}[h]
+    \begin{subfigure}[t]{0.5\textwidth}
+        \centering
+        \input{fig/3_plots/pitch.tikz}
+        \phantomcaption
+        \label{fig:3_pitch}
+    \end{subfigure}%
+    ~
+     \begin{subfigure}[t]{0.5\textwidth}
+        \centering
+        \input{fig/3_plots/travel.tikz}
+        \phantomcaption
+        \label{fig:3_travel}
+    \end{subfigure}
+    \caption{Plots of calculated and measured pitch and travel}\label{fig:3_plots}
+\end{figure}
+
+
+\subsection{MPC controller}
+
+An alternative to our LQ controller is a MPC controller. A MPC controller solves a finite-horizon optimization problem at every time step with the current state $x_i$ as input. At each iteration only the first input of the current optimal input sequence is used. MPC controllers can be more accurate than a LQ controller but they use a whole lot more computational powers. In our case it's unlikely that a MPC controller would represent a significant improvement over a predetermined trajectory due to the fast dynamics of the system.

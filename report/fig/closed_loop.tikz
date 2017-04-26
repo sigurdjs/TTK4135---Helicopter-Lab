@@ -1,0 +1,28 @@
+\tikzset{%
+  % Specifications for style of nodes:
+         base/.style = {rectangle, draw = black, minimum width=5.5cm, minimum height=1.2cm, align = center}
+}
+\begin{tikzpicture}[node distance=2.5cm, every node/.style={fill=white}, align=right]
+
+    \node (start)     [base]    {Model based optimization};
+    \node (layer1)    [left of = start, xshift = -3cm] {Optimization layer};
+    \node (control)   [base, below of = start] {LQR};
+    \node (layer2)    [left of = control, xshift = -3cm] {Advanced control layer};
+    \node (basic)     [base, below of = control] {Pitch controller (PD)
+                                                              \\Elevation controller (PID)};
+    \node (layer3)    [left of = basic, xshift = -3cm] {Basic control layer};
+
+    \node (physical)  [base, below of = basic] {Plant (helicopter)};
+    \node (layer4)    [left of = physical, xshift = -3cm]  {Physical layer};
+
+    \draw[-{Latex[length = 3mm]}] ([xshift = 1.5cm]start.south west) --  node[left ,midway]{$u^*$} ([xshift = 1.5cm]control.north west);
+    \draw[-{Latex[length = 3mm]}] ([xshift = -1.5cm]start.south east) -- node[left ,midway]{$x^*$} ([xshift = -1.5cm]control.north east);
+
+    \draw[-{Latex[length = 3mm]}] (control) -- node[left=.1cm ,midway] {$u$} (basic);
+    \draw[-{Latex[length = 3mm]}] (basic) -- node [left, midway] {$\begin{bmatrix} V_d \\ V_s \end{bmatrix}$} (physical);
+    \draw[-{Latex[length = 3mm]}] (physical.east) --  node [above, midway] {$x$}([xshift = 2cm]physical.east);
+    \draw[-{Latex[length = 3mm]}] ([xshift = .7cm]physical.east) --  ([xshift = .7cm]basic.east) -- (basic.east);
+    \draw[-{Latex[length = 3mm]}] ([xshift = .7cm]basic.east) --  ([xshift = .7cm]control.east) -- (control.east);
+
+
+\end{tikzpicture}
